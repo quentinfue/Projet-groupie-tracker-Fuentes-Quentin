@@ -5,8 +5,6 @@ L’objectif est de créer une application web utilisant une API externe, avec :
 -page de détails,
 -système de favoris.
 
-Fonctionalités 
-
 L’application propose les fonctionnalités suivantes :
 
 -Affichage de toutes les cartes Pokémon
@@ -16,14 +14,15 @@ L’application propose les fonctionnalités suivantes :
 -Page de détails pour chaque carte
 -Système de favoris stocké en .JSON
 
--Languages utilisé:
+-Langages utilisé:
 -Go
 -net/http
 -html/template
 -Css
 -API : https://api.tcgdex.net
 
-Arborescence du projet
+Arborescence du projet:
+
 -main.go
 -go.mod
 -data/
@@ -49,5 +48,5 @@ Comment lancer le projet :
 
 Récuperer le projet :
 
-git clone https://github.com/TON_PSEUDO/groupie-tracker-poketcg.git
-cd groupie-tracker-poketcg
+git clone https://github.com/quentinfue/Projet-groupie-tracker-Fuentes-Quentin.git
+go run .
