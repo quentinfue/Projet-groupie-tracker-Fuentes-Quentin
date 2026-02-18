@@ -1,0 +1,42 @@
+{{define "favorites.html"}}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  {{template "header" .}}
+
+  <main class="container">
+    <h1>Mes Favoris</h1>
+
+    {{if not .Cards}}
+      <p class="muted">Aucun favori. Clique sur ★ sur l'accueil.</p>
+    {{end}}
+
+    <section class="grid">
+      {{range .Cards}}
+        <article class="card">
+          <div class="card-top">
+            <span class="pill">{{.ID}}</span>
+            <button class="fav-btn is-fav" data-fav-id="{{.ID}}" title="Retirer">★</button>
+          </div>
+
+          <a class="card-link" href="/pokemon/details?set={{.SetID}}&local={{.LocalID}}">
+            <div class="thumb">
+              {{if .Image}}<img src="{{.Image}}/low.webp" alt="{{.Name}}">{{end}}
+            </div>
+            <h3>{{.Name}}</h3>
+            <p class="sub">Série: {{.SeriesID}}</p>
+          </a>
+        </article>
+      {{end}}
+    </section>
+  </main>
+</body>
+</html>
+{{end}}

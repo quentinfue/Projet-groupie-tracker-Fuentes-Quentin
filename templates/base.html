@@ -1,0 +1,24 @@
+{{define "base.html"}}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <script defer src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="nav">
+      <a href="/">Accueil</a>
+      <a href="/favorites">Mes Favoris</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    {{block "content" .}}{{end}}
+  </main>
+</body>
+</html>
+{{end}}

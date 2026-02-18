@@ -1,0 +1,20 @@
+{{define "error.html"}}
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{.Title}}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  {{template "header" .}}
+
+  <main class="container">
+    <h1>Erreur {{.Code}}</h1>
+    <p>{{.Message}}</p>
+    <a class="back" href="/">← Retour accueil</a>
+  </main>
+</body>
+</html>
+{{end}}
