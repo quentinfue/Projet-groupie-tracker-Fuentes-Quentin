@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"groupie-tracker/internal/favorites"
-	"groupie-tracker/internal/tcgdex"
+	"github.com/quentinfue/Projet-groupie-tracker-Fuentes-Quentin/internal/favorites"
+	"github.com/quentinfue/Projet-groupie-tracker-Fuentes-Quentin/internal/tcgdex"
 )
 
 type App struct {
@@ -44,11 +44,10 @@ func main() {
 	mux.HandleFunc("/", app.homeHandler)
 	mux.HandleFunc("/pokemon/details", app.detailsHandler)
 	mux.HandleFunc("/favorites", app.favoritesHandler)
-
 	mux.HandleFunc("/api/favorites/toggle", app.toggleFavoriteHandler)
 
 	addr := ":8080"
-	log.Println("Server on http://localhost" + addr)
+	log.Println("✅ Server on http://localhost" + addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -62,6 +61,7 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 
 	var cards []tcgdex.CardLite
 	var err error
+
 	if typ != "" {
 		cards, err = a.API.ListCardsByType(typ)
 	} else {
@@ -71,7 +71,7 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
 			"Code":    503,
-			"Message": "Impossible de charger les cartes (API indisponible ?)",
+			"Message": "Impossible de charger les cartes (API).",
 		})
 		return
 	}
@@ -87,11 +87,9 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 		}
-
 		if series != "" && c.SeriesID != series {
 			continue
 		}
-
 		filtered = append(filtered, c)
 	}
 
@@ -177,7 +175,7 @@ func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
 			"Code":    503,
-			"Message": "Impossible de charger les favoris (API).",
+			"Message": "Impossible de charger les cartes (API).",
 		})
 		return
 	}
@@ -202,24 +200,30 @@ func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad form", http.StatusBadRequest)
+		return
+	}
+
+	id := strings.TrimSpace(r.FormValue("id"))
+	next := strings.TrimSpace(r.FormValue("next"))
+
 	if id == "" {
 		http.Error(w, "Missing id", http.StatusBadRequest)
 		return
 	}
 
-	isFav, err := a.Fav.Toggle(id)
+	_, err := a.Fav.Toggle(id)
 	if err != nil {
 		http.Error(w, "Cannot update favorites", http.StatusInternalServerError)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	if isFav {
-		w.Write([]byte(`{"ok":true,"favorite":true}`))
-	} else {
-		w.Write([]byte(`{"ok":true,"favorite":false}`))
+	if next == "" || !strings.HasPrefix(next, "/") {
+		next = "/"
 	}
+
+	http.Redirect(w, r, next, http.StatusSeeOther)
 }
 
 func (a *App) render(w http.ResponseWriter, name string, data map[string]any) {

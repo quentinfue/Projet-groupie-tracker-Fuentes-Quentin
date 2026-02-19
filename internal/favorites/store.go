@@ -3,29 +3,43 @@ package favorites
 import (
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
 type Store struct {
-	path string
 	mu   sync.Mutex
+	path string
+	set  map[string]bool
 }
 
 func NewStore(path string) *Store {
-	return &Store{path: path}
+	s := &Store{
+		path: path,
+		set:  map[string]bool{},
+	}
+	_ = s.load()
+	return s
 }
 
 func (s *Store) All() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	ids, _ := s.load()
-	return ids
+
+	out := make([]string, 0, len(s.set))
+	for id := range s.set {
+		out = append(out, id)
+	}
+	return out
 }
 
 func (s *Store) AllSet() map[string]bool {
-	out := make(map[string]bool)
-	for _, id := range s.All() {
-		out[id] = true
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	out := make(map[string]bool, len(s.set))
+	for k, v := range s.set {
+		out[k] = v
 	}
 	return out
 }
@@ -34,52 +48,47 @@ func (s *Store) Toggle(id string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ids, err := s.load()
-	if err != nil {
-		return false, err
+	if s.set[id] {
+		delete(s.set, id)
+	} else {
+		s.set[id] = true
 	}
-
-	found := false
-	out := make([]string, 0, len(ids))
-	for _, x := range ids {
-		if x == id {
-			found = true
-			continue
-		}
-		out = append(out, x)
-	}
-
-	isFav := false
-	if !found {
-		out = append(out, id)
-		isFav = true
-	}
-
-	if err := s.save(out); err != nil {
-		return false, err
-	}
-	return isFav, nil
+	return s.set[id], s.save()
 }
 
-func (s *Store) load() ([]string, error) {
+func (s *Store) load() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	b, err := os.ReadFile(s.path)
 	if err != nil {
-		return []string{}, nil
+		return nil
 	}
-	if len(b) == 0 {
-		return []string{}, nil
-	}
+
 	var ids []string
 	if err := json.Unmarshal(b, &ids); err != nil {
-		return []string{}, nil
+		return err
 	}
-	return ids, nil
+
+	for _, id := range ids {
+		s.set[id] = true
+	}
+	return nil
 }
 
-func (s *Store) save(ids []string) error {
+func (s *Store) save() error {
+	dir := filepath.Dir(s.path)
+	_ = os.MkdirAll(dir, 0755)
+
+	ids := make([]string, 0, len(s.set))
+	for id := range s.set {
+		ids = append(ids, id)
+	}
+
 	b, err := json.MarshalIndent(ids, "", "  ")
 	if err != nil {
 		return err
 	}
+
 	return os.WriteFile(s.path, b, 0644)
 }

@@ -8,16 +8,11 @@
   <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
-
 {{template "header" .}}
-
 <main class="container">
-
 <section class="toolbar">
   <form method="GET" action="/" class="filters">
-
     <input type="text" name="q" placeholder="Nom ou ID" value="{{.Q}}" />
-
     <select name="type">
       <option value="">Énergie (toutes)</option>
       <option value="feu" {{if eq .Type "feu"}}selected{{end}}>Feu</option>
@@ -31,36 +26,27 @@
       <option value="dragon" {{if eq .Type "dragon"}}selected{{end}}>Dragon</option>
       <option value="incolore" {{if eq .Type "incolore"}}selected{{end}}>Incolore</option>
     </select>
-
     <select name="series">
       <option value="">Série (toutes)</option>
       {{range .Series}}
         <option value="{{.id}}" {{if eq $.SeriesSelected .id}}selected{{end}}>{{.name}}</option>
       {{end}}
     </select>
-
     <button type="submit">Appliquer</button>
   </form>
-
   <div class="meta">{{.Total}} résultats</div>
 </section>
-
 <section class="grid">
   {{range .Cards}}
   <article class="card">
-
     <div class="card-top">
       <span class="pill">{{.ID}}</span>
-
-      <!-- ⭐ Favori SANS JS -->
       <form method="POST" action="/api/favorites/toggle">
         <input type="hidden" name="id" value="{{.ID}}">
-        <input type="hidden" name="next"
-          value="/?q={{$.Q}}&type={{$.Type}}&series={{$.SeriesSelected}}&page={{$.Page}}">
+        <input type="hidden" name="next" value="/?q={{$.Q}}&type={{$.Type}}&series={{$.SeriesSelected}}&page={{$.Page}}">
         <button type="submit" class="fav-btn {{if index $.Favs .ID}}is-fav{{end}}">★</button>
       </form>
     </div>
-
     <a class="card-link" href="/pokemon/details?set={{.SetID}}&local={{.LocalID}}">
       <div class="thumb">
         {{if .Image}}
@@ -72,29 +58,22 @@
       <h3>{{.Name}}</h3>
       <p class="sub">Série : {{.SeriesID}}</p>
     </a>
-
   </article>
   {{end}}
 </section>
-
 <section class="pagination">
   {{if gt .TotalPages 1}}
   <div class="pager">
-
     {{if gt .Page 1}}
       <a href="/?q={{.Q}}&type={{.Type}}&series={{.SeriesSelected}}&page={{sub .Page 1}}">←</a>
     {{end}}
-
     <span>Page {{.Page}} / {{.TotalPages}}</span>
-
     {{if lt .Page .TotalPages}}
       <a href="/?q={{.Q}}&type={{.Type}}&series={{.SeriesSelected}}&page={{add .Page 1}}">→</a>
     {{end}}
-
   </div>
   {{end}}
 </section>
-
 </main>
 </body>
 </html>

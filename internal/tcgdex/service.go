@@ -18,14 +18,13 @@ type Service struct {
 func NewService(baseURL string) *Service {
 	return &Service{
 		BaseURL: strings.TrimRight(baseURL, "/"),
-		Client: &http.Client{
-			Timeout: 15 * time.Second,
-		},
+		Client:  &http.Client{Timeout: 15 * time.Second},
 	}
 }
 
 func (s *Service) ListAllCards() ([]CardLite, error) {
 	endpoint := s.BaseURL + "/cards"
+
 	var raw []struct {
 		ID    string `json:"id"`
 		Name  string `json:"name"`
@@ -94,7 +93,6 @@ func (s *Service) ListCardsByType(typ string) ([]CardLite, error) {
 	return out, nil
 }
 
-// Détails via /sets/{set}/{local}
 func (s *Service) GetCardFromSet(setID, localID string) (Card, error) {
 	endpoint := fmt.Sprintf("%s/sets/%s/%s", s.BaseURL, url.PathEscape(setID), url.PathEscape(localID))
 
@@ -131,8 +129,8 @@ func (s *Service) GetCardFromSet(setID, localID string) (Card, error) {
 	}, nil
 }
 
-func (s *Service) getJSON(url string, out any) error {
-	resp, err := s.Client.Get(url)
+func (s *Service) getJSON(u string, out any) error {
+	resp, err := s.Client.Get(u)
 	if err != nil {
 		return err
 	}

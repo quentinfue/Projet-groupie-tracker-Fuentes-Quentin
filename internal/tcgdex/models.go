@@ -7,17 +7,16 @@ type CardLite struct {
 	SetID    string
 	LocalID  string
 	SeriesID string
-	Rarity   string
-	Types    []string
 }
 
-type CardDetails struct {
-	ID      string
-	Name    string
-	Image   string
-	HP      int
-	Rarity  string
-	Types   []string
-	SetID   string
-	LocalID string
+type Card struct {
+	ID       string
+	Name     string
+	Image    string
+	SetID    string
+	LocalID  string
+	HP       string
+	Rarity   string
+	Types    []string
+	SeriesID string
 }
