@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/quentinfue/Projet-groupie-tracker-Fuentes-Quentin/internal/favorites"
-	"github.com/quentinfue/Projet-groupie-tracker-Fuentes-Quentin/internal/tcgdex"
+	"Projet-groupie-tracker-Fuentes-Quentin/internal/favorites"
+	"Projet-groupie-tracker-Fuentes-Quentin/internal/tcgdex"
 )
 
 type App struct {
@@ -47,7 +47,7 @@ func main() {
 	mux.HandleFunc("/api/favorites/toggle", app.toggleFavoriteHandler)
 
 	addr := ":8080"
-	log.Println("✅ Server on http://localhost" + addr)
+	log.Println("Server on http://localhost" + addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
@@ -67,49 +67,60 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		cards, err = a.API.ListAllCards()
 	}
+
 	if err != nil {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
 			"Code":    503,
-			"Message": "Impossible de charger les cartes (API).",
+			"Message": "Erreur API",
 		})
 		return
 	}
 
 	seriesList := buildSeriesFromCards(cards)
 
-	filtered := make([]tcgdex.CardLite, 0, len(cards))
+	filtered := make([]tcgdex.CardLite, 0)
+
 	for _, c := range cards {
+
 		if q != "" {
 			nameOK := strings.Contains(strings.ToLower(c.Name), strings.ToLower(q))
 			idOK := strings.Contains(strings.ToLower(c.ID), strings.ToLower(q))
+
 			if !nameOK && !idOK {
 				continue
 			}
 		}
+
 		if series != "" && c.SeriesID != series {
 			continue
 		}
+
 		filtered = append(filtered, c)
 	}
 
 	total := len(filtered)
 	totalPages := (total + perPage - 1) / perPage
+
 	if totalPages == 0 {
 		totalPages = 1
 	}
+
 	if page < 1 {
 		page = 1
 	}
+
 	if page > totalPages {
 		page = totalPages
 	}
 
 	start := (page - 1) * perPage
 	end := start + perPage
+
 	if start > total {
 		start = total
 	}
+
 	if end > total {
 		end = total
 	}
@@ -138,22 +149,20 @@ func (a *App) detailsHandler(w http.ResponseWriter, r *http.Request) {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
 			"Code":    400,
-			"Message": "Paramètres manquants (set/local).",
+			"Message": "Paramètres manquants",
 		})
 		return
 	}
 
 	card, err := a.API.GetCardFromSet(setID, localID)
+
 	if err != nil {
-		card, err = a.API.GetCardFromSet(setID, setID+"-"+localID)
-		if err != nil {
-			a.render(w, "error.html", map[string]any{
-				"Title":   "Erreur",
-				"Code":    503,
-				"Message": "Impossible de charger la fiche (API).",
-			})
-			return
-		}
+		a.render(w, "error.html", map[string]any{
+			"Title":   "Erreur",
+			"Code":    503,
+			"Message": "Carte introuvable",
+		})
+		return
 	}
 
 	a.render(w, "details.html", map[string]any{
@@ -165,22 +174,26 @@ func (a *App) detailsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 	favIDs := a.Fav.All()
+
 	setFav := map[string]bool{}
+
 	for _, id := range favIDs {
 		setFav[id] = true
 	}
 
 	cards, err := a.API.ListAllCards()
+
 	if err != nil {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
 			"Code":    503,
-			"Message": "Impossible de charger les cartes (API).",
+			"Message": "Erreur API",
 		})
 		return
 	}
 
 	out := make([]tcgdex.CardLite, 0)
+
 	for _, c := range cards {
 		if setFav[c.ID] {
 			out = append(out, c)
@@ -188,7 +201,7 @@ func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.render(w, "favorites.html", map[string]any{
-		"Title": "Mes Favoris",
+		"Title": "Favoris",
 		"Cards": out,
 		"Favs":  a.Fav.AllSet(),
 	})
@@ -196,12 +209,12 @@ func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Method not allowed", 405)
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, "Bad form", http.StatusBadRequest)
+		http.Error(w, "Bad form", 400)
 		return
 	}
 
@@ -209,13 +222,14 @@ func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 	next := strings.TrimSpace(r.FormValue("next"))
 
 	if id == "" {
-		http.Error(w, "Missing id", http.StatusBadRequest)
+		http.Error(w, "Missing id", 400)
 		return
 	}
 
 	_, err := a.Fav.Toggle(id)
+
 	if err != nil {
-		http.Error(w, "Cannot update favorites", http.StatusInternalServerError)
+		http.Error(w, "Save error", 500)
 		return
 	}
 
@@ -228,7 +242,7 @@ func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) render(w http.ResponseWriter, name string, data map[string]any) {
 	if err := a.TPL.ExecuteTemplate(w, name, data); err != nil {
-		log.Println("template error:", err)
+		log.Println(err)
 		http.Error(w, "Template error", 500)
 	}
 }
@@ -237,10 +251,13 @@ func parseIntDefault(s string, def int) int {
 	if s == "" {
 		return def
 	}
+
 	n, err := strconv.Atoi(s)
+
 	if err != nil {
 		return def
 	}
+
 	return n
 }
 
@@ -252,6 +269,7 @@ func buildSeriesFromCards(cards []tcgdex.CardLite) []map[string]string {
 		if c.SeriesID == "" {
 			continue
 		}
+
 		if !seen[c.SeriesID] {
 			seen[c.SeriesID] = true
 			keys = append(keys, c.SeriesID)
@@ -260,12 +278,14 @@ func buildSeriesFromCards(cards []tcgdex.CardLite) []map[string]string {
 
 	sort.Strings(keys)
 
-	out := make([]map[string]string, 0, len(keys))
+	out := make([]map[string]string, 0)
+
 	for _, id := range keys {
 		out = append(out, map[string]string{
 			"id":   id,
 			"name": strings.ToUpper(id),
 		})
 	}
+
 	return out
 }
