@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -46,9 +45,8 @@ func main() {
 	mux.HandleFunc("/favorites", app.favoritesHandler)
 	mux.HandleFunc("/api/favorites/toggle", app.toggleFavoriteHandler)
 
-	addr := ":8080"
-	log.Println("Server on http://localhost" + addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+	log.Println("Server on http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", mux))
 }
 
 func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
@@ -58,6 +56,8 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 	page := parseIntDefault(r.URL.Query().Get("page"), 1)
 
 	perPage := 20
+
+	seriesList, _ := a.API.ListSeries()
 
 	var cards []tcgdex.CardLite
 	var err error
@@ -77,17 +77,13 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	seriesList := buildSeriesFromCards(cards)
-
 	filtered := make([]tcgdex.CardLite, 0)
 
 	for _, c := range cards {
 
 		if q != "" {
-			nameOK := strings.Contains(strings.ToLower(c.Name), strings.ToLower(q))
-			idOK := strings.Contains(strings.ToLower(c.ID), strings.ToLower(q))
-
-			if !nameOK && !idOK {
+			if !strings.Contains(strings.ToLower(c.Name), strings.ToLower(q)) &&
+				!strings.Contains(strings.ToLower(c.ID), strings.ToLower(q)) {
 				continue
 			}
 		}
@@ -142,19 +138,27 @@ func (a *App) homeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) detailsHandler(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
 	setID := strings.TrimSpace(r.URL.Query().Get("set"))
 	localID := strings.TrimSpace(r.URL.Query().Get("local"))
 
-	if setID == "" || localID == "" {
-		a.render(w, "error.html", map[string]any{
-			"Title":   "Erreur",
-			"Code":    400,
-			"Message": "Paramètres manquants",
-		})
-		return
-	}
+	var card tcgdex.Card
+	var err error
 
-	card, err := a.API.GetCardFromSet(setID, localID)
+	if id != "" {
+		card, err = a.API.GetCardByID(id)
+	} else {
+		if setID == "" || localID == "" {
+			a.render(w, "error.html", map[string]any{
+				"Title":   "Erreur",
+				"Code":    400,
+				"Message": "Paramètres manquants",
+			})
+			return
+		}
+
+		card, err = a.API.GetCardByID(setID + "-" + localID)
+	}
 
 	if err != nil {
 		a.render(w, "error.html", map[string]any{
@@ -174,15 +178,12 @@ func (a *App) detailsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 	favIDs := a.Fav.All()
-
 	setFav := map[string]bool{}
-
 	for _, id := range favIDs {
 		setFav[id] = true
 	}
 
 	cards, err := a.API.ListAllCards()
-
 	if err != nil {
 		a.render(w, "error.html", map[string]any{
 			"Title":   "Erreur",
@@ -193,7 +194,6 @@ func (a *App) favoritesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	out := make([]tcgdex.CardLite, 0)
-
 	for _, c := range cards {
 		if setFav[c.ID] {
 			out = append(out, c)
@@ -227,7 +227,6 @@ func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err := a.Fav.Toggle(id)
-
 	if err != nil {
 		http.Error(w, "Save error", 500)
 		return
@@ -242,7 +241,6 @@ func (a *App) toggleFavoriteHandler(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) render(w http.ResponseWriter, name string, data map[string]any) {
 	if err := a.TPL.ExecuteTemplate(w, name, data); err != nil {
-		log.Println(err)
 		http.Error(w, "Template error", 500)
 	}
 }
@@ -251,41 +249,9 @@ func parseIntDefault(s string, def int) int {
 	if s == "" {
 		return def
 	}
-
 	n, err := strconv.Atoi(s)
-
 	if err != nil {
 		return def
 	}
-
 	return n
-}
-
-func buildSeriesFromCards(cards []tcgdex.CardLite) []map[string]string {
-	seen := make(map[string]bool)
-	keys := make([]string, 0)
-
-	for _, c := range cards {
-		if c.SeriesID == "" {
-			continue
-		}
-
-		if !seen[c.SeriesID] {
-			seen[c.SeriesID] = true
-			keys = append(keys, c.SeriesID)
-		}
-	}
-
-	sort.Strings(keys)
-
-	out := make([]map[string]string, 0)
-
-	for _, id := range keys {
-		out = append(out, map[string]string{
-			"id":   id,
-			"name": strings.ToUpper(id),
-		})
-	}
-
-	return out
 }

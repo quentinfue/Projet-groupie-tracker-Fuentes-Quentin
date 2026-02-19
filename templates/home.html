@@ -9,10 +9,14 @@
 </head>
 <body>
 {{template "header" .}}
+
 <main class="container">
+
 <section class="toolbar">
   <form method="GET" action="/" class="filters">
+
     <input type="text" name="q" placeholder="Nom ou ID" value="{{.Q}}" />
+
     <select name="type">
       <option value="">Énergie (toutes)</option>
       <option value="feu" {{if eq .Type "feu"}}selected{{end}}>Feu</option>
@@ -26,16 +30,21 @@
       <option value="dragon" {{if eq .Type "dragon"}}selected{{end}}>Dragon</option>
       <option value="incolore" {{if eq .Type "incolore"}}selected{{end}}>Incolore</option>
     </select>
+
     <select name="series">
       <option value="">Série (toutes)</option>
       {{range .Series}}
-        <option value="{{.id}}" {{if eq $.SeriesSelected .id}}selected{{end}}>{{.name}}</option>
+        <option value="{{.ID}}" {{if eq $.SeriesSelected .ID}}selected{{end}}>{{.Name}}</option>
       {{end}}
     </select>
+
     <button type="submit">Appliquer</button>
+
   </form>
+
   <div class="meta">{{.Total}} résultats</div>
 </section>
+
 <section class="grid">
   {{range .Cards}}
   <article class="card">
@@ -47,7 +56,8 @@
         <button type="submit" class="fav-btn {{if index $.Favs .ID}}is-fav{{end}}">★</button>
       </form>
     </div>
-    <a class="card-link" href="/pokemon/details?set={{.SetID}}&local={{.LocalID}}">
+
+    <a class="card-link" href="/pokemon/details?id={{.ID}}">
       <div class="thumb">
         {{if .Image}}
           <img src="{{.Image}}/low.webp" alt="{{.Name}}">
@@ -56,11 +66,11 @@
         {{end}}
       </div>
       <h3>{{.Name}}</h3>
-      <p class="sub">Série : {{.SeriesID}}</p>
     </a>
   </article>
   {{end}}
 </section>
+
 <section class="pagination">
   {{if gt .TotalPages 1}}
   <div class="pager">
@@ -74,7 +84,9 @@
   </div>
   {{end}}
 </section>
+
 </main>
+
 </body>
 </html>
 {{end}}

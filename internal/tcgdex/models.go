@@ -1,5 +1,10 @@
 package tcgdex
 
+type Series struct {
+	ID   string
+	Name string
+}
+
 type CardLite struct {
 	ID       string
 	Name     string
