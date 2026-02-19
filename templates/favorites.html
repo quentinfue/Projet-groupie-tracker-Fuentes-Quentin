@@ -3,40 +3,53 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{.Title}}</title>
   <link rel="stylesheet" href="/static/style.css" />
-  <script defer src="/static/app.js"></script>
 </head>
 <body>
-  {{template "header" .}}
 
-  <main class="container">
-    <h1>Mes Favoris</h1>
+{{template "header" .}}
 
-    {{if not .Cards}}
-      <p class="muted">Aucun favori. Clique sur ★ sur l'accueil.</p>
-    {{end}}
+<main class="container">
 
-    <section class="grid">
-      {{range .Cards}}
-        <article class="card">
-          <div class="card-top">
-            <span class="pill">{{.ID}}</span>
-            <button class="fav-btn is-fav" data-fav-id="{{.ID}}" title="Retirer">★</button>
-          </div>
+<h1>Mes Favoris</h1>
 
-          <a class="card-link" href="/pokemon/details?set={{.SetID}}&local={{.LocalID}}">
-            <div class="thumb">
-              {{if .Image}}<img src="{{.Image}}/low.webp" alt="{{.Name}}">{{end}}
-            </div>
-            <h3>{{.Name}}</h3>
-            <p class="sub">Série: {{.SeriesID}}</p>
-          </a>
-        </article>
-      {{end}}
-    </section>
-  </main>
+{{if not .Cards}}
+  <p class="muted">Aucun favori pour le moment.</p>
+{{end}}
+
+<section class="grid">
+  {{range .Cards}}
+  <article class="card">
+
+    <div class="card-top">
+      <span class="pill">{{.ID}}</span>
+
+      <form method="POST" action="/api/favorites/toggle">
+        <input type="hidden" name="id" value="{{.ID}}">
+        <input type="hidden" name="next" value="/favorites">
+        <button type="submit" class="fav-btn is-fav">★</button>
+      </form>
+    </div>
+
+    <a class="card-link" href="/pokemon/details?set={{.SetID}}&local={{.LocalID}}">
+      <div class="thumb">
+        {{if .Image}}
+          <img src="{{.Image}}/low.webp" alt="{{.Name}}">
+        {{else}}
+          <div class="thumb-empty">No image</div>
+        {{end}}
+      </div>
+      <h3>{{.Name}}</h3>
+      <p class="sub">Série : {{.SeriesID}}</p>
+    </a>
+
+  </article>
+  {{end}}
+</section>
+
+</main>
 </body>
 </html>
 {{end}}

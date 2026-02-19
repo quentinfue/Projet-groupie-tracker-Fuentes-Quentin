@@ -3,7 +3,9 @@ package tcgdex
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -13,170 +15,133 @@ type Service struct {
 	Client  *http.Client
 }
 
-func NewService(base string) *Service {
+func NewService(baseURL string) *Service {
 	return &Service{
-		BaseURL: base,
-		Client:  &http.Client{Timeout: 10 * time.Second},
+		BaseURL: strings.TrimRight(baseURL, "/"),
+		Client: &http.Client{
+			Timeout: 15 * time.Second,
+		},
 	}
 }
 
 func (s *Service) ListAllCards() ([]CardLite, error) {
-	url := s.BaseURL + "/cards"
-	var raw []map[string]any
-	if err := s.getJSON(url, &raw); err != nil {
+	endpoint := s.BaseURL + "/cards"
+	var raw []struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Image string `json:"image"`
+		Set   struct {
+			ID string `json:"id"`
+		} `json:"set"`
+		LocalID string `json:"localId"`
+		Series  struct {
+			ID string `json:"id"`
+		} `json:"serie"`
+	}
+
+	if err := s.getJSON(endpoint, &raw); err != nil {
 		return nil, err
 	}
-	return mapCardsLite(raw), nil
+
+	out := make([]CardLite, 0, len(raw))
+	for _, c := range raw {
+		out = append(out, CardLite{
+			ID:       c.ID,
+			Name:     c.Name,
+			Image:    c.Image,
+			SetID:    c.Set.ID,
+			LocalID:  c.LocalID,
+			SeriesID: c.Series.ID,
+		})
+	}
+	return out, nil
 }
 
 func (s *Service) ListCardsByType(typ string) ([]CardLite, error) {
-	url := fmt.Sprintf("%s/cards?types=%s", s.BaseURL, typ)
-	var raw []map[string]any
-	if err := s.getJSON(url, &raw); err != nil {
+	u, _ := url.Parse(s.BaseURL + "/cards")
+	q := u.Query()
+	q.Set("types", typ)
+	u.RawQuery = q.Encode()
+
+	var raw []struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Image string `json:"image"`
+		Set   struct {
+			ID string `json:"id"`
+		} `json:"set"`
+		LocalID string `json:"localId"`
+		Series  struct {
+			ID string `json:"id"`
+		} `json:"serie"`
+	}
+
+	if err := s.getJSON(u.String(), &raw); err != nil {
 		return nil, err
 	}
-	return mapCardsLite(raw), nil
+
+	out := make([]CardLite, 0, len(raw))
+	for _, c := range raw {
+		out = append(out, CardLite{
+			ID:       c.ID,
+			Name:     c.Name,
+			Image:    c.Image,
+			SetID:    c.Set.ID,
+			LocalID:  c.LocalID,
+			SeriesID: c.Series.ID,
+		})
+	}
+	return out, nil
 }
 
-func (s *Service) GetCardFromSet(setID, localID string) (CardDetails, error) {
-	url := fmt.Sprintf("%s/sets/%s/%s", s.BaseURL, setID, localID)
-	var raw map[string]any
-	if err := s.getJSON(url, &raw); err != nil {
-		return CardDetails{}, err
+// Détails via /sets/{set}/{local}
+func (s *Service) GetCardFromSet(setID, localID string) (Card, error) {
+	endpoint := fmt.Sprintf("%s/sets/%s/%s", s.BaseURL, url.PathEscape(setID), url.PathEscape(localID))
+
+	var raw struct {
+		ID    string `json:"id"`
+		Name  string `json:"name"`
+		Image string `json:"image"`
+		Set   struct {
+			ID string `json:"id"`
+		} `json:"set"`
+		LocalID string   `json:"localId"`
+		HP      string   `json:"hp"`
+		Rarity  string   `json:"rarity"`
+		Types   []string `json:"types"`
+		Series  struct {
+			ID string `json:"id"`
+		} `json:"serie"`
 	}
-	return mapCardDetails(raw), nil
+
+	if err := s.getJSON(endpoint, &raw); err != nil {
+		return Card{}, err
+	}
+
+	return Card{
+		ID:       raw.ID,
+		Name:     raw.Name,
+		Image:    raw.Image,
+		SetID:    raw.Set.ID,
+		LocalID:  raw.LocalID,
+		HP:       raw.HP,
+		Rarity:   raw.Rarity,
+		Types:    raw.Types,
+		SeriesID: raw.Series.ID,
+	}, nil
 }
 
 func (s *Service) getJSON(url string, out any) error {
-	req, _ := http.NewRequest(http.MethodGet, url, nil)
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := s.Client.Do(req)
+	resp, err := s.Client.Get(url)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("api status %d", resp.StatusCode)
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		b, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("tcgdex http %d: %s", resp.StatusCode, string(b))
 	}
 
 	return json.NewDecoder(resp.Body).Decode(out)
-}
-
-func mapCardsLite(raw []map[string]any) []CardLite {
-	cards := make([]CardLite, 0, len(raw))
-	for _, r := range raw {
-		var c CardLite
-
-		if v, ok := r["id"].(string); ok {
-			c.ID = v
-		}
-		if v, ok := r["name"].(string); ok {
-			c.Name = v
-		}
-		if v, ok := r["localId"].(string); ok {
-			c.LocalID = v
-		}
-		if v, ok := r["image"].(string); ok {
-			c.Image = v
-		}
-
-		if c.ID != "" {
-			parts := strings.SplitN(c.ID, "-", 2)
-			if len(parts) == 2 {
-				c.SetID = parts[0]
-				if c.LocalID == "" {
-					c.LocalID = parts[1]
-				}
-			}
-		}
-
-		c.SeriesID = extractSeriesID(c.SetID)
-
-		if c.ID != "" && c.Name != "" {
-			cards = append(cards, c)
-		}
-	}
-	return cards
-}
-
-func extractSeriesID(setID string) string {
-	if setID == "" {
-		return ""
-	}
-	if i := strings.Index(setID, "-"); i > 0 {
-		return strings.ToLower(setID[:i])
-	}
-	var b strings.Builder
-	for _, r := range setID {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') {
-			b.WriteRune(r)
-		} else {
-			break
-		}
-	}
-	return strings.ToLower(b.String())
-}
-
-func mapCardDetails(r map[string]any) CardDetails {
-	var c CardDetails
-
-	if v, ok := r["id"].(string); ok {
-		c.ID = v
-	}
-	if v, ok := r["name"].(string); ok {
-		c.Name = v
-	}
-	if v, ok := r["image"].(string); ok {
-		c.Image = v
-	}
-
-	switch hp := r["hp"].(type) {
-	case float64:
-		c.HP = int(hp)
-	case string:
-		hp = strings.TrimSpace(hp)
-		if hp != "" {
-			var n int
-			_, _ = fmt.Sscanf(hp, "%d", &n)
-			c.HP = n
-		}
-	}
-
-	if v, ok := r["rarity"].(string); ok {
-		c.Rarity = v
-	}
-
-	if arr, ok := r["types"].([]any); ok {
-		for _, it := range arr {
-			if s, ok := it.(string); ok {
-				c.Types = append(c.Types, s)
-			}
-		}
-	}
-
-	if set, ok := r["set"].(map[string]any); ok {
-		if id, ok := set["id"].(string); ok {
-			c.SetID = id
-		}
-	}
-
-	if v, ok := r["localId"].(string); ok {
-		c.LocalID = v
-	}
-
-	if c.ID != "" && (c.SetID == "" || c.LocalID == "") {
-		parts := strings.SplitN(c.ID, "-", 2)
-		if len(parts) == 2 {
-			if c.SetID == "" {
-				c.SetID = parts[0]
-			}
-			if c.LocalID == "" {
-				c.LocalID = parts[1]
-			}
-		}
-	}
-
-	return c
 }

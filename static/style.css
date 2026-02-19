@@ -34,15 +34,8 @@ body{
   justify-content:flex-start;
 }
 
-.nav a{
-  color:#fff;
-  text-decoration:none;
-  opacity:.92
-}
-
-.nav a:hover{
-  opacity:1
-}
+.nav a{ color:#fff; text-decoration:none; opacity:.92 }
+.nav a:hover{ opacity:1 }
 
 .container{
   max-width:1200px;
@@ -65,8 +58,7 @@ body{
   align-items:center;
 }
 
-.filters input,
-.filters select{
+.filters input,.filters select{
   padding:10px 12px;
   border:1px solid var(--line);
   border-radius:0;
@@ -83,9 +75,7 @@ body{
   cursor:pointer;
 }
 
-.meta{
-  color:var(--muted)
-}
+.meta{color:var(--muted)}
 
 .grid{
   display:grid;
@@ -107,6 +97,8 @@ body{
   align-items:center;
   padding:10px 12px;
 }
+
+.card-top form{ margin:0; }
 
 .pill{
   font-size:12px;
@@ -143,10 +135,7 @@ body{
   display:block;
 }
 
-.thumb-empty{
-  color:var(--muted);
-  font-size:13px;
-}
+.thumb-empty{ color:var(--muted); font-size:13px; }
 
 h3{
   margin:12px 0 0 0;
@@ -199,9 +188,7 @@ h3{
   background:#fbfbfb;
 }
 
-.muted{
-  color:var(--muted)
-}
+.muted{color:var(--muted)}
 
 .type{
   display:inline-block;
@@ -224,13 +211,8 @@ h3{
   line-height:1;
 }
 
-.fav-btn.is-fav{
-  color:#ffb100;
-}
-
-.fav-btn.big{
-  font-size:30px
-}
+.fav-btn.is-fav{ color:#ffb100; }
+.fav-btn.big{ font-size:30px; }
 
 .pagination{
   margin:18px 0;

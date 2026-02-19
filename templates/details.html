@@ -3,42 +3,57 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{.Title}}</title>
   <link rel="stylesheet" href="/static/style.css" />
-  <script defer src="/static/app.js"></script>
 </head>
 <body>
-  {{template "header" .}}
 
-  <main class="container">
-    <a class="back" href="/">← Retour</a>
+{{template "header" .}}
 
-    <section class="details">
-      <div class="details-left">
-        {{if .Card.Image}}
-          <img class="details-img" src="{{.Card.Image}}/high.webp" alt="{{.Card.Name}}">
-        {{else}}
-          <div class="thumb-empty">No image</div>
+<main class="container">
+
+<a class="back" href="/">← Retour</a>
+
+<section class="details">
+  <div class="details-left">
+    {{if .Card.Image}}
+      <img class="details-img" src="{{.Card.Image}}/high.webp" alt="{{.Card.Name}}">
+    {{else}}
+      <div class="thumb-empty">No image</div>
+    {{end}}
+  </div>
+
+  <div class="details-right">
+    <div class="details-head">
+      <h1>{{.Card.Name}}</h1>
+
+      <!-- ⭐ Favori SANS JS -->
+      <form method="POST" action="/api/favorites/toggle">
+        <input type="hidden" name="id" value="{{.Card.ID}}">
+        <input type="hidden" name="next"
+               value="/pokemon/details?set={{.Card.SetID}}&local={{.Card.LocalID}}">
+        <button type="submit" class="fav-btn big {{if index .Favs .Card.ID}}is-fav{{end}}">★</button>
+      </form>
+    </div>
+
+    <div class="info-box">
+      <p><b>ID :</b> {{.Card.ID}}</p>
+      <p><b>PV :</b> {{.Card.HP}}</p>
+      <p><b>Rareté :</b> {{.Card.Rarity}}</p>
+
+      <p><b>Types :</b>
+        {{range .Card.Types}}
+          <span class="type">{{.}}</span>
         {{end}}
-      </div>
+      </p>
 
-      <div class="details-right">
-        <div class="details-head">
-          <h1>{{.Card.Name}}</h1>
-          <button class="fav-btn big {{if index .Favs .Card.ID}}is-fav{{end}}" data-fav-id="{{.Card.ID}}" title="Favori">★</button>
-        </div>
+      <p class="muted"><b>Set :</b> {{.Card.SetID}} • <b>Local :</b> {{.Card.LocalID}}</p>
+    </div>
+  </div>
+</section>
 
-        <div class="info-box">
-          <p><b>ID :</b> {{.Card.ID}}</p>
-          <p><b>PV (HP) :</b> {{.Card.HP}}</p>
-          <p><b>Rareté :</b> {{.Card.Rarity}}</p>
-          <p><b>Types :</b> {{range .Card.Types}} <span class="type">{{.}}</span> {{end}}</p>
-          <p class="muted"><b>Set :</b> {{.Card.SetID}} • <b>Local :</b> {{.Card.LocalID}}</p>
-        </div>
-      </div>
-    </section>
-  </main>
+</main>
 </body>
 </html>
 {{end}}
